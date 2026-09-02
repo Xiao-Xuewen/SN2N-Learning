@@ -27,3 +27,7 @@ if torch.cuda.is_available():
     print("GPU calculation device:", z.device)
 
 print("\nEnvironment OK")
+
+"""
+修改代码测试
+"""
