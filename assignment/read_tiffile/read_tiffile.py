@@ -1,7 +1,12 @@
 import tifffile
 import matplotlib.pyplot as plt
+import os
 
-img = tifffile.imread("Data/learning_picture.tif") #读取图像
+# 基于当前py文件位置
+base_dir = os.path.dirname(__file__)
+tif_path = os.path.join(base_dir, "data", "learning_picture.tif")
+img = tifffile.imread(tif_path)
+
 
 #基本信息
 print(img.shape)
