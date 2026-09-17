@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+from torch.utils.data import TensorDataset, DataLoader
 
 num_classes = 5
 num_per_class = 100
@@ -11,8 +12,14 @@ input_dim = 2
 hidden_dim_1 = 32
 hidden_dim_2 = 16
 output_dim = num_classes
-learning_rate = 1.0
+learning_rate = 0.1 #要看参数更新次数
 num_steps = 5000
+
+num_epoch = 2000
+batch_size = 32
+
+loss_history = []
+acc_history = []
 
 def make_2D_spiral_data(num_classes,num_per_class,noise,seed):
     num_samples = num_classes * num_per_class
@@ -29,7 +36,11 @@ def make_2D_spiral_data(num_classes,num_per_class,noise,seed):
         X[idx,1] = r*torch.cos(theta)
         y[idx] = j
     return X,y
+
 X,y = make_2D_spiral_data(num_classes,num_per_class,noise,seed)
+dataset = TensorDataset(X,y)
+train_loader = DataLoader(dataset,batch_size,shuffle=True)
+
 class MLP(nn.Module):
     def __init__(self, input_dim, hidden_dim_1,hidden_dim_2,output_dim):
         super().__init__()
@@ -53,18 +64,34 @@ initial_state = {
 # 绘图代码由ChatGPT生成
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(),lr=learning_rate)
-for step in range(num_steps):
-    logits = model(X)
-    loss = criterion(logits,y)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-    if step % 500 == 0:
+
+
+for epoch in range(num_epoch):
+    running_loss = 0.0
+    correct = 0
+    total = 0
+    for train_X,train_y in train_loader:
+        logits = model(train_X)
+        loss = criterion(logits,train_y)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        current_batch_size = train_y.size(0)
+        running_loss += (loss.item() * current_batch_size)
         prediction = torch.argmax(logits,dim = 1)
-        acc = torch.mean((y == prediction).float())
-        print(f"step:{step:4d}")
-        print(f"loss:{loss:.4f}")
-        print(f"acc:{acc:.4f}")
+        correct += (train_y == prediction).sum().item()
+        total += current_batch_size
+    epoch_loss = running_loss / total
+    epoch_acc = correct / total
+    loss_history.append(epoch_loss)
+    acc_history.append(epoch_acc)
+
+    if epoch % 100 == 0:
+        print(f"epoch: {epoch:4d}")
+        print(f"loss: {epoch_loss:.4f}")
+        print(f"acc: {epoch_acc:.4f}")
+
 model.eval()
 with torch.no_grad():
     logits = model(X)
@@ -164,6 +191,17 @@ axes[1].set_xlabel("x1")
 axes[1].set_ylabel("x2")
 
 plt.tight_layout()
+
+plt.figure()
+plt.plot(loss_history)
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+
+plt.figure()
+plt.plot(acc_history)
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+
 plt.show()
 
 # 绘图代码由ChatGPT生成
